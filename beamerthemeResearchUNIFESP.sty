@@ -1,0 +1,210 @@
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{beamerthemeResearchUNIFESP}[2026/11/17 Institutional research presentation theme]
+
+\RequirePackage{graphicx}
+\RequirePackage{booktabs}
+\RequirePackage{amsmath,amssymb}
+\RequirePackage{tikz}
+\RequirePackage{etoolbox}
+\RequirePackage{appendixnumberbeamer}
+
+\mode<presentation>
+\usetheme{default}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+
+% Palette inspired by UNIFESP's institutional green and gold.
+\definecolor{ResearchGreen}{HTML}{215A36}
+\definecolor{ResearchGreenDark}{HTML}{173F27}
+\definecolor{ResearchGold}{HTML}{A8812F}
+\definecolor{ResearchInk}{HTML}{202820}
+\definecolor{ResearchGray}{HTML}{68736B}
+\definecolor{ResearchLight}{HTML}{F3F6F3}
+\definecolor{ResearchLine}{HTML}{DCE4DC}
+
+\setbeamercolor{normal text}{fg=ResearchInk,bg=white}
+\setbeamercolor{structure}{fg=ResearchGreen}
+\setbeamercolor{frametitle}{fg=ResearchGreenDark,bg=white}
+\setbeamercolor{title}{fg=ResearchGreenDark}
+\setbeamercolor{subtitle}{fg=ResearchGray}
+\setbeamercolor{alerted text}{fg=ResearchGold}
+\setbeamercolor{block title}{fg=white,bg=ResearchGreen}
+\setbeamercolor{block body}{fg=ResearchInk,bg=ResearchLight}
+\setbeamercolor{block title alerted}{fg=white,bg=ResearchGold}
+\setbeamercolor{block body alerted}{fg=ResearchInk,bg=ResearchLight}
+\setbeamercolor{itemize item}{fg=ResearchGold}
+\setbeamercolor{itemize subitem}{fg=ResearchGreen}
+\setbeamercolor{enumerate item}{fg=ResearchGold}
+
+\setbeamerfont{title}{size=\LARGE,series=\bfseries}
+\setbeamerfont{subtitle}{size=\large}
+\setbeamerfont{frametitle}{size=\Large,series=\bfseries}
+\setbeamerfont{framesubtitle}{size=\small}
+\setbeamerfont{footline}{size=\scriptsize}
+\setbeamerfont{caption}{size=\scriptsize}
+
+\setbeamersize{text margin left=8mm,text margin right=8mm}
+\setbeamertemplate{itemize item}{\raise0.15ex\hbox{\small\textcolor{ResearchGold}{$\blacktriangleright$}}}
+\setbeamertemplate{itemize subitem}{\raise0.1ex\hbox{\tiny\textcolor{ResearchGreen}{$\bullet$}}}
+
+% Header line and title treatment.
+
+\setbeamertemplate{frametitle}{
+  \vspace{2mm}
+  \begin{beamercolorbox}[wd=\paperwidth,ht=11mm,dp=1mm,leftskip=8mm,rightskip=8mm]{frametitle}
+    \hbox to \dimexpr\paperwidth-16mm\relax{%
+      \begin{minipage}[c]{.82\dimexpr\paperwidth-16mm\relax}
+        \raggedright
+        {\usebeamerfont{frametitle}\insertframetitle\par}
+        \ifx\insertframesubtitle\empty\else
+          \vspace{0.5mm}
+          {\usebeamerfont{framesubtitle}\usebeamercolor[fg]{subtitle}\insertframesubtitle\par}
+        \fi
+      \end{minipage}%
+      \hfill
+      \begin{minipage}[c]{.14\dimexpr\paperwidth-16mm\relax}
+        \raggedleft\cinelogo
+      \end{minipage}%
+    }
+  \end{beamercolorbox}
+  \vspace{-1mm}
+  {\color{ResearchGold}\rule{\paperwidth}{0.7pt}}
+}
+
+% Logo row: each file is optional. Add/remove logos via \researchlogos.
+\newcommand{\cinelogo}{%
+  \IfFileExists{assets/logos/cine.png}
+    {\includegraphics[height=8mm,width=20mm,keepaspectratio]{assets/logos/cine.png}}{}%
+}
+\newcommand{\closinglogos}{%
+  \begin{minipage}[c][19mm][c]{.32\paperwidth}\centering
+    \IfFileExists{assets/logos/unifesp.png}
+      {\includegraphics[height=16mm,width=.30\paperwidth,keepaspectratio]{assets/logos/unifesp.png}}{}
+  \end{minipage}\hspace{10mm}
+  \begin{minipage}[c][19mm][c]{.32\paperwidth}\centering
+    \IfFileExists{assets/logos/cidag.png}
+      {\includegraphics[height=17mm,width=.29\paperwidth,keepaspectratio]{assets/logos/cidag.png}}{}
+  \end{minipage}%
+}
+\setbeamertemplate{footline}{
+  \leavevmode
+  \hbox{
+    \begin{beamercolorbox}[wd=.78\paperwidth,ht=3.2ex,dp=1.2ex,leftskip=8mm]{author in head/foot}
+      \usebeamerfont{footline}\color{ResearchGray}\insertshortauthor
+      \ifx\insertshortinstitute\empty\else\hspace{1.5mm}{\color{ResearchLine}|}\hspace{1.5mm}\insertshortinstitute\fi
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[wd=.22\paperwidth,ht=3.2ex,dp=1.2ex,rightskip=8mm plus 1fil]{date in head/foot}
+      \usebeamerfont{footline}\color{ResearchGreen}\hfill
+      \insertframenumber/\inserttotalframenumber
+    \end{beamercolorbox}
+  }
+}
+
+% Cover page.
+\defbeamertemplate*{title page}{research}[1][]{
+  \begin{tikzpicture}[remember picture,overlay]
+    % Faixa superior
+    \fill[ResearchGreen]
+      (current page.north west)
+      rectangle ([yshift=-5mm]current page.north east);
+
+    \fill[ResearchGold]
+      ([yshift=-5mm]current page.north west)
+      rectangle ([yshift=-6mm]current page.north east);
+
+    % Faixa inferior
+    \fill[ResearchLight]
+      (current page.south west)
+      rectangle ([yshift=25mm]current page.south east);
+
+    \draw[ResearchLine,line width=.5pt]
+      ([yshift=25mm]current page.south west) --
+      ([yshift=25mm]current page.south east);
+
+    % Logo CINE independente no canto superior direito
+    \node[
+      anchor=north east,
+      xshift=-8mm,
+      yshift=-8mm
+    ] at (current page.north east) {
+      \cinelogo
+    };
+  \end{tikzpicture}
+
+  % ------------------------------------------------
+  % Conteúdo principal
+  % ------------------------------------------------
+  \vspace*{5mm}
+
+  \noindent
+  \begin{minipage}[t][.50\textheight][t]{.94\paperwidth}
+    \raggedright
+
+    {\usebeamerfont{title}
+     \color{ResearchGreenDark}
+     \inserttitle\par}
+
+    \ifx\insertsubtitle\empty\else
+      \vspace{2mm}
+      {\usebeamerfont{subtitle}
+       \color{ResearchGray}
+       \insertsubtitle\par}
+    \fi
+
+    \vspace{15mm}
+
+    {\insertauthor\par}
+  \end{minipage}
+
+  \vspace{1mm}
+
+  % ------------------------------------------------
+  % Rodapé institucional
+  % ------------------------------------------------
+  \begin{minipage}[c][22mm][c]{.90\paperwidth}
+    \raggedright
+    {\small\color{ResearchGray}
+     \insertinstitute\par}
+
+    % \vspace{2mm}
+    \begin{center}
+        {\small\color{ResearchGray}\insertdate}
+    \end{center}
+  \end{minipage}%
+  \hfill
+  \begin{minipage}[c][22mm][c]{.90\paperwidth}
+    \centering
+    \raisebox{20mm}{\closinglogos}
+  \end{minipage}
+
+  \vspace{1mm}
+}
+
+% Section divider.
+\AtBeginSection[]{
+  \begin{frame}[plain]
+    \cinelogo\par
+    \vspace{12mm}
+    {\color{ResearchGold}\rule{18mm}{1.2pt}}\par\vspace{5mm}
+    {\usebeamerfont{title}\color{ResearchGreenDark}\insertsectionhead\par}
+    \vspace{3mm}
+    {\color{ResearchGray}\large Pesquisa, método e resultados}\par
+    \vfill
+  \end{frame}
+}
+
+% Handy callout and compact table helpers.
+\newcommand{\keyresult}[2]{%
+  \begin{beamercolorbox}[rounded=true,sep=1.2ex,wd=\linewidth]{block body}
+    {\color{ResearchGold}\bfseries #1}\par\vspace{1mm}
+    {\Large\bfseries\color{ResearchGreenDark}#2}
+  \end{beamercolorbox}
+}
+\newcommand{\source}[1]{\vspace{1mm}{\tiny\color{ResearchGray}Fonte: #1}}
+\newcommand{\placeholder}[1]{%
+  \begin{beamercolorbox}[center,rounded=true,sep=2ex,wd=\linewidth]{block body}
+    \color{ResearchGray}\textit{Inserir #1}
+  \end{beamercolorbox}
+}
+\mode<all>

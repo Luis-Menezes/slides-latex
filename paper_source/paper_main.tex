@@ -1,0 +1,547 @@
+% IEEE ICIT 2027 -- IEEE two-column conference template (IEEEtran)
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage[T1]{fontenc}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage[normalem]{ulem}
+\usepackage{cancel}
+
+
+% Revision marks: \new{} for insertions and \del{} for deletions
+\DeclareRobustCommand{\new}[1]{{\color{blue}#1}}
+\DeclareRobustCommand{\del}[1]{\relax\ifmmode{\color{red}\cancel{#1}}\else{\color{red}\sout{#1}}\fi}
+\makeatletter
+\newcommand{\linebreakand}{%
+  \end{@IEEEauthorhalign}
+  \hfill\mbox{}\par
+  \mbox{}\hfill\begin{@IEEEauthorhalign}
+}
+\makeatother
+\graphicspath{{Figures/}}
+
+\begin{document}
+
+\title{State-of-Health Prediction for Batteries via Global Degradation Priors and Residual Learning
+% \thanks{Identify applicable funding agency here. If none, delete this.}
+}
+
+\author{%
+\IEEEauthorblockN{João V. Nascimento and Rodrigo Contreras}
+\IEEEauthorblockA{\textit{Instituto de Ciência e Tecnologia} \\
+\textit{Universidade Federal de São Paulo (UNIFESP)}\\
+São José dos Campos, SP, Brazil \\
+\{jvsnascimento, contreras\}@unifesp.br}
+\and
+\IEEEauthorblockN{Ronaldo C. Prati}
+\IEEEauthorblockA{Center for Mathematics, Computing and Cognition\\
+Universidade Federal do ABC (UFABC)\\
+Santo Andr\'e, SP, Brazil\\
+ronaldo.prati@ufabc.edu.br}
+\linebreakand
+\IEEEauthorblockN{Marcos G. Quiles}
+\IEEEauthorblockA{\textit{Instituto de Ciência e Tecnologia} \\
+\textit{Universidade Federal de São Paulo (UNIFESP)}\\
+São José dos Campos, SP, Brazil \\
+quiles@unifesp.br}%
+}
+
+\maketitle
+
+\begin{abstract}
+% ============ MODIFIED BY JOAO ==========================================================
+% Predicting the state of health (SOH) of a battery is central to the safety and reliability of battery-based systems, and is most valuable early in the life of a cell, when only a few cycles have been observed. This work proposes an SOH prognostics method for sodium-ion batteries that combines population-level knowledge with residual learning. A mean degradation curve built from previously characterized batteries serves as a prior for the shared aging dynamics, and its first and second discrete differences describe how this trend evolves. A Support Vector Regression model with a hybrid linear--Cauchy kernel is then fitted on the first cycles of the target battery to learn only its deviation from the mean trend. In a leave-one-battery-out evaluation on seven sodium-ion cells, the method reduced the mean absolute error by approximately 69.5\% relative to the mean curve alone and produced accurate forecasts of the remaining trajectory from as few as 80 observed cycles.
+% =========================================================================================
+
+Accurate battery degradation forecasting from limited early-cycle observations remains a challenging problem. This work investigates whether information shared across homogeneous battery populations can improve the forecasting of degradation trajectories from early-cycle observations. A mean degradation curve built from previously characterized cells serves as a prior for the shared dynamics, and a Support Vector Regression (SVR) model with a hybrid linear--Cauchy kernel, fitted only on the first cycles of the target cell, learns the deviation of this cell from the mean curve. The proposed approach is evaluated on two public datasets, comprising lithium-ion and sodium-ion cells, under a leave-one-battery-out protocol. The number of observed cycles of the target cell ranges from 10 to 640. With at most 80 observed cycles, the method achieves a mean absolute error (MAE) between 0.0054 and 0.0069 on the sodium-ion (Wenzhou) dataset and between 0.0150 and 0.0189 on the lithium-ion (HNEI) dataset. Compared with the mean curve alone, it reduces the MAE in all eleven observation windows on Wenzhou, by 66.3\% on average, and in ten of the eleven windows on HNEI.
+% The results demonstrate that the approach achieves a mean absolute error (MAE) of X.XX\% using \textbf{$N$} cycles for training. 
+% These experiments provide insights into the potential of population-level information to improve battery degradation forecasting and the conditions under which shared degradation dynamics can support predictions for individual cells.
+
+\end{abstract}
+
+\begin{IEEEkeywords}
+State of Health, Sodium-ion batteries, Lithium-ion batteries, Prognostics, Residual learning, Support Vector Regression, Homogeneous populations
+\end{IEEEkeywords}
+
+% =====================================
+% Introduction
+% =====================================
+
+\section{Introduction}
+\label{cap:introducao}
+
+The growing use of electrochemical storage in applications such as electric vehicles, stationary energy storage systems, and electronic devices has increased the need for methods that can assess and predict the state of batteries over their service life \cite{ngoy2025lithium, 2011electrical}. Battery degradation is commonly described by the state of health (SOH), a relative measure of the condition of the battery with respect to a reference condition \cite{WANG2026239106}. Estimating the current SOH is relevant for battery management, but prognostics applications require an additional task: estimating how the SOH will evolve, given the information available up to the present.
+
+This task is difficult because battery degradation does not necessarily follow a deterministic trajectory that is the same for every device \cite{zhu2025bayesian}. Differences in manufacturing characteristics, initial conditions, operating history, temperature, charge and discharge regime, and other experimental conditions can produce distinct degradation trajectories. As a result, two batteries subjected to apparently similar conditions may differ both in how fast they degrade and in the shape of their trajectories over the cycles \cite{baumhofer2014production}. Still, when batteries belong to the same population and operate under comparable conditions, their trajectories may share dynamic properties. Instead of considering only the history of the battery to be predicted, one can ask to what extent the trajectories of previously observed batteries carry useful information about the future dynamics of a new battery.
+
+This question matters most when only a small number of cycles of the target battery have been observed, which is also the situation of greatest practical interest. Characterizing how a battery ages requires cycling it until a substantial part of its capacity has been lost, and such tests can take months to complete \cite{severson2019data, attia2020closed}. Running them on every cell is therefore impractical, although decisions such as accepting a cell, grouping it with similar cells, or planning its maintenance would benefit from knowing its future degradation early. Because cells produced by the same process can still age differently \cite{baumhofer2014production}, a single nominal degradation curve is not enough to support these decisions. Previous work has shown that the first cycles of a cell already carry information about its lifetime \cite{severson2019data}, which makes early-cycle prognostics a natural way to reduce the time and cost of characterizing new batteries.
+
+Battery production offers a concrete scenario in which this population-level information is available. A manufacturer can run exhaustive aging tests on a reference set of cells of a given design and production process, and the resulting trajectories describe how that population degrades. New cells from the same process can then be tested for only a few initial cycles, and their individual trajectories can be forecast by combining this short history with the knowledge accumulated from the reference set. The costly characterization is carried out once for the population, while the cost per cell is limited to a short test. Methods that learn only from the individual trajectory cannot exploit this structure, since the early history of a new battery does not reveal the degradation patterns contained in the reference trajectories.
+
+This scenario motivates the central hypothesis of this work. We consider that a set of batteries operated under comparable conditions can be treated as a family of related systems. The trajectory of each battery can then be represented, conceptually, as the combination of a component associated with the dynamics shared by the population and a component specific to the battery. In simplified form, this representation can be written as
+\begin{equation}
+    SOH_i(t) = G(t) + R_i(t) + \epsilon_i(t),
+    \label{eq:decomposicao_soh_intro}
+\end{equation}
+where $SOH_i(t)$ is the state of health of battery $i$ at time or cycle $t$, $G(t)$ represents dynamics shared by the batteries of the population, $R_i(t)$ is the component specific to battery $i$, and $\epsilon_i(t)$ represents variations not explained by the decomposition. In this work, $G(t)$ is approximated empirically from the trajectories of previously observed batteries, and the difference between an individual trajectory and this approximation measures what is particular to that battery.
+
+The hypothesis investigated here is that this decomposition can make the prognostics problem more tractable. Rather than requiring a learning model to reproduce the whole degradation trajectory of a new battery, the shared dynamics can provide a reference structure, and the learning model can focus on the battery-specific component. The final forecast is then obtained by combining the estimated shared dynamics with the predicted residual.
+
+The goal of this work is therefore to investigate whether information obtained from previously observed batteries can be used as a representation of the shared dynamics to improve the prognosis of an unseen battery, particularly when only its first cycles have been observed. The experiments emulate the production scenario described above on two public datasets, in which a held-out cell is forecast from its early history.
+% a reference set of sodium-ion cells is fully characterized, and the trajectory of a held-out cell is forecast from its early history. 
+  The main contributions of this work are:
+
+\begin{itemize}
+    \item a simple SOH prognostics strategy that separates the dynamics shared by a population of batteries from the component specific to each battery, without requiring source data from other chemistries;
+
+    \item the use of information from previously observed batteries to build an empirical representation of the shared degradation dynamics;
+
+    \item an experimental investigation of the benefit of this population-level information when only the first cycles of the target battery have been observed, which corresponds to characterizing new cells with short tests instead of full aging tests, on two public datasets of sodium-ion and lithium-ion cells.
+
+    % \item an analysis of the time horizon over which the shared dynamics remain useful for prognostics, which gives an empirical characterization of the limits of validity of the approach.
+\end{itemize}
+
+% The rest of this paper is organized as follows. Section~\ref{sec:fundamentacao} reviews related work, covering SOH estimation and prognostics methods, strategies for learning from multiple time series, and approaches that exploit shared and individual structures. Section~\ref{sec:metodologia} describes the proposed method, including how the shared-dynamics representation is built, how the residuals are modeled, and the experimental protocol. Section~\ref{sec:resultados} reports and analyzes the experimental results. Finally, Section~\ref{sec:conclusoes} concludes the paper and discusses its limitations and directions for future work.
+
+% =====================================
+% Related work
+% =====================================
+
+\section{Related Work}
+\label{sec:fundamentacao}
+
+Aging causes gradual changes in the electrochemical properties of a battery, which lead, among other effects, to a lower maximum available capacity and a higher internal resistance \cite{Desai2025MultiTimescale,Lyu2025TransferPack}. Here, the SOH is defined as $SOH(t)=C_t/C_0$,
+where $C_0$ is the capacity measured at the first retained cycle, so that the normalized SOH starts at 1, and $C_t$ is the maximum capacity observed at time $t$.
+
+Methods for SOH estimation and prognostics can be broadly grouped into physics-based approaches, statistical or empirical methods, and data-driven methods~\cite{sylvestrin2025state}.
+Several recent studies apply machine learning and deep learning to SOH estimation and prognostics, including regression models, neural networks, and architectures developed specifically for time series \cite{Liu2025SodiumSOH,Desai2025MultiTimescale}. Despite this progress, when the model is built only from the history of the battery of interest, the few observations available early in its life limit how well its future trajectory can be characterized, which motivates the use of information from other batteries.
+
+Global forecasting methods fit a single model to a collection of related time series and learn the regularities shared across them, so that information observed in one series can help forecast another \cite{montero2021global}%,salinas2020deepar}
+; local models, in contrast, are built for each series individually.
+Some models combine this global information with local information specific to each trajectory, using a common representation without assuming that all series behave identically \cite{wang2019deepfactors}. The benefit of global models is not guaranteed when the series are heterogeneous, motivating localized global models, which cluster the series and fit a global model to each group \cite{abbasimehr2025localized}, and two-stage frameworks in which a global model first captures the patterns common to all series and local or group-specific models then capture the remaining heterogeneity \cite{ren2025boosting}. The method proposed in this work follows the same global-then-local principle, with a population mean as the global stage and a battery-specific residual model as the local stage.
+
+The separation between shared and individual components is also classical in statistics: random-effects models describe a population by common components plus individual effects \cite{laird1982random}, functional data analysis does the same for longitudinal data \cite{yao2005functional}, and multitask dynamical system models \cite{bird2022multitask} and individualized dynamic factor models \cite{zhang2024individualized} extend it to related time series.
+
+Information from different batteries can be especially useful for degradation prognostics when the target battery has a short history. Several recent studies exploit information from other batteries in different ways. Early-prediction methods learn, from a large set of cells, how features of the first cycles relate to the cycle life of a new cell \cite{severson2019data}. Transfer learning approaches adapt knowledge acquired on source batteries to a target battery \cite{wang2026transfer}, for example, from cells to packs by combining a decomposition of the degradation trajectories with a transfer pipeline \cite{Lyu2025TransferPack}. At a larger scale, time series foundation models pretrained on broad collections of data have been fine-tuned for long-horizon SOH forecasting across operating conditions and chemistries \cite{fan2025batterytsfm}. Many of these approaches rely on large source datasets, on features extracted from within-cycle measurements, or on models with many parameters. The closest work is that of He et al.~\cite{He2026TransferSodium}, who released the sodium-ion dataset used here and proposed a Dual-DMD model that separates shared degradation behavior from cell-specific deviations; the degradation trajectories are then forecast with an adaptive unscented Kalman filter, using lithium-ion cells as source data. The present work investigates a simpler form of cross-battery information, in which the population contributes an explicit mean degradation trajectory and only the deviation from it is learned for each battery, using only previously characterized cells of the same chemistry and population as the target battery.
+
+% =====================================
+% Methodology
+% =====================================
+
+\section{Methodology}
+\label{sec:metodologia}
+
+The methodology is organized in three main steps. First, the development batteries are used to build a mean representation of the SOH evolution, from which we derive features describing its temporal evolution, namely its first discrete difference. Next, the first $k$ observed cycles of the test battery are expressed as deviations from the mean curve. Finally, a regression model fitted on these $k$ cycles learns the relationship between the shared representation and the residual behavior, which allows the future SOH trajectory of the test battery to be reconstructed. The procedure is designed so that no information from the test battery is used to build the shared representation or to tune the hyperparameters, and only its first $k$ cycles are used to fit the residual model. The whole procedure, including hyperparameter tuning, is repeated for each test battery and each value of $k$.
+
+% =====================================
+% Dataset
+% =====================================
+
+\subsection{Dataset and Preprocessing}
+\label{subsec:base_dados}
+% ======= MODIFIED BY JOAO =============================================================
+% The experiments use the public \textit{Wenzhou Sodium-ion Battery Degradation Data}, released for research on the degradation and prognostics of sodium-ion batteries. The dataset consists of seven electrochemical cells subjected to complete degradation tests under controlled laboratory conditions, which makes it possible to follow the evolution of capacity over successive charge and discharge cycles. The tests were run on a Neware CT-4008 test system with standardized charge and discharge protocols \cite{He2026TransferSodium}. The cells were built with an iron-manganese Prussian blue analog cathode, a hard carbon anode, and an electrolyte of 1 M NaClO$_4$ in propylene carbonate with 1\% vinylene carbonate added. After assembly, the cells rested for 10 hours to allow complete electrolyte infiltration before testing began. The experimental protocol consisted of charging at 0.5C in the voltage range between 2.0 V and 4.0 V, followed by discharging at 1C, which produced degradation trajectories of approximately 1,100 charge and discharge cycles.
+
+% To evaluate how well the method generalizes to a battery that was not observed when the shared knowledge was built, we adopted a cross-battery validation protocol. In each run, one battery is held out for testing, while the remaining six are used to develop the model. Of the six batteries available for development, five are used to build the mean representation and one for validation. This procedure is repeated so that each of these batteries serves once as the validation battery. The error obtained in each configuration is used to select the model hyperparameters. The mean representation is then rebuilt from the six development batteries, and the residual model is fitted on the first cycles of the held-out battery to forecast the rest of its trajectory. This procedure is a \textit{leave-one-battery-out} strategy, in which the battery used for evaluation remains completely independent of the construction of the shared representation and of the hyperparameter selection. Only its first $k$ cycles are used, to fit the residual model.
+% =========================================================================================
+
+The experiments use two public battery degradation datasets. The first is the \textit{Wenzhou Sodium-ion Battery Degradation Data}, comprising seven sodium-ion cells tested under controlled laboratory conditions using standardized charge and discharge protocols \cite{He2026TransferSodium}; all seven trajectories are used up to cycle 800, the length available for every cell. The second is the HNEI lithium-ion battery dataset, derived from experiments investigating the intrinsic variability of degradation among commercial 18650 cells \cite{devie2018intrinsic}, from which fourteen cells are used. The HNEI data were preprocessed using an adaptation of the BatteryML methodology \cite{zhang2024batteryml,MicrosoftBatteryML}, incorporating Hampel-based anomaly detection, the replacement of anomalous cycles, and the removal of initial cycles. Together, these datasets allow the proposed methodology to be evaluated on two battery chemistries.
+
+To evaluate how well the method generalizes to a battery that was not observed when the shared knowledge was built, we adopt a \textit{leave-one-battery-out} protocol. In each run, one of the $B$ batteries of a dataset is held out for testing, and the remaining $B-1$ batteries form the development set. The hyperparameters are selected by an inner leave-one-out loop over the development set: each development battery serves once as the validation battery, the mean curve is built from the other $B-2$ batteries, the residual SVR is fitted on the first $k$ cycles of the validation battery, and the MAE is computed on its remaining cycles. Each candidate configuration is scored by its average MAE over the $B-1$ validation folds, and the best one is retained. The mean curve is then rebuilt from all $B-1$ development batteries, and the residual model is fitted on the first $k$ cycles of the test battery to forecast the remainder of its trajectory. The test battery therefore takes no part in building the shared representation or in selecting the hyperparameters.
+
+% =====================================
+% Individual SVR baseline
+% =====================================
+
+% =====================================
+% Shared representation
+% =====================================
+
+\subsection{Shared Degradation Representation}
+\label{subsec:representacao_compartilhada}
+
+The first step of the methodology is to build an empirical representation of the behavior shared among the batteries available for training. We assume that, although individual trajectories differ, batteries subjected to similar experimental conditions can present a common structure in the evolution of their SOH. Let $N$ be the number of batteries used to build the mean curve ($N=B-2$ during hyperparameter tuning and $N=B-1$ in the final fit; see Section~\ref{subsec:base_dados}) and $SOH_i(c)$ the state of health of the $i$-th battery at cycle $c$. The mean degradation representation is defined as
+\begin{equation}
+    \overline{SOH}(c)
+    =
+    \frac{1}{N}
+    \sum_{i=1}^{N}
+    SOH_i(c),
+    \label{eq:mean_soh}
+\end{equation}
+where $\overline{SOH}(c)$ is the average behavior observed among the batteries used to build the shared representation. In the terminology of functional data analysis, $\overline{SOH}(c)$ is the sample estimate of the population mean function $\mu(c)=\mathbb{E}[SOH(c)]$ \cite{yao2005functional}, and the shared component of Equation~\eqref{eq:decomposicao_soh_intro} is approximated empirically by this mean trajectory, $G(c) \approx \mu(c)$.
+
+% =====================================
+% Discrete differences
+% =====================================
+\subsection{Representing the Dynamics with Discrete Differences}
+\label{subsec:diferencas_discretas}
+
+The mean curve $\overline{SOH}(c)$ gives the position of the shared trajectory in the SOH space but does not explicitly describe its rate of change. To include information about the local degradation dynamics, we compute the first discrete difference of the mean curve:
+\begin{equation}
+    \Delta \overline{SOH}(c)
+    =
+    \overline{SOH}(c+1)-\overline{SOH}(c),
+    \label{eq:first_difference}
+\end{equation}
+which represents the change in SOH between two consecutive cycles. Different values of $\Delta\overline{SOH}(c)$ indicate variations in the degradation rate, allowing the model to distinguish regions where the mean trajectory follows different degradation regimes.
+The feature vector used to represent the shared dynamics at cycle $c$ is therefore $\mathbf{\bar{x}}(c)=[\overline{SOH}(c),\Delta\overline{SOH}(c)]^{\mathrm{T}}$.
+Figure~\ref{fig:mean_curve} illustrates how this representation is built.
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/reduced/curva_media_n10.png}
+    \caption{Construction of the shared degradation representation on the Wenzhou dataset: SOH trajectories of the six development batteries (gray), their mean curve (dashed red), and the held-out test battery ys-11.2 (blue).}
+    \label{fig:mean_curve}
+\end{figure}
+
+% =====================================
+% Residual representation
+% =====================================
+
+\subsection{Residual Representation}
+\label{subsec:representacao_residual}
+
+Once the shared representation has been built, each individual trajectory can be expressed in terms of its deviation from the mean curve. For battery $i$, the residual at cycle $c$ is defined as
+\begin{equation}
+    R_i(c)
+    =
+    SOH_i(c)-\overline{SOH}(c),
+    \label{eq:residual}
+\end{equation}
+where $R_i(c)$ is the battery-specific component that the shared representation does not explain. This transformation changes the target of the regression problem. Instead of learning a function that reproduces the entire SOH trajectory, the model estimates how far the battery deviates from the previously observed average behavior.
+
+The residual is not necessarily noise. It may contain systematic characteristics of the individual battery, including differences in the degradation trajectory that the mean curve does not represent. Whether this component can be predicted is therefore an empirical question, which the experiments address.
+
+% =====================================
+% SVR
+% =====================================
+
+The residual component is modeled with Support Vector Regression (SVR). The model takes as input the shared-dynamics representation $\mathbf{\bar{x}}(c)$ and outputs the residual defined in Equation~\eqref{eq:residual}. For a target battery $i$, the SVR is fitted only on its first $k$ observed cycles, using the pairs $(\mathbf{\bar{x}}(c), R_i(c))$ with $c \le k$. The other batteries therefore enter the residual model only through the mean representation. The learned relationship is $\widehat{R}_i(c)=f_i(\mathbf{\bar{x}}(c))$,
+where $f_i(\cdot)$ is the regression function learned by the SVR for battery $i$. Since the input features are the same for all batteries, the battery-specific information comes entirely from the residuals on which $f_i$ is fitted.
+
+In this work, we use a combination of the linear and Cauchy kernels. Mixing kernel components lets the model represent both approximately linear and nonlinear relationships between the shared-dynamics representation and the residual behavior. The hybrid kernel is defined as
+\begin{equation}
+    K_H(\mathbf{x}_i,\mathbf{x}_j)
+    =
+    \alpha \mathbf{x}_i^{\mathrm{T}}\mathbf{x}_j
+    +
+    (1-\alpha)\frac{1}{1+\gamma\|\mathbf{x}_i-\mathbf{x}_j\|^2},
+    \label{eq:hybrid_kernel}
+\end{equation}
+where $\alpha$ controls the relative contribution of the linear and Cauchy kernels
+and $\gamma$ controls the scale of the nonlinear contribution. The model hyperparameters are tuned with Optuna~\cite{akiba2019optuna} within the development set, as described in Section~\ref{subsec:base_dados}.
+
+% =====================================
+% Prediction and reconstruction
+% =====================================
+
+After the model is fitted, the shared representation built from the training batteries is used to generate the inputs for the future cycles of the test battery. Since these inputs depend only on the previously built representation, the prediction does not rely on test-battery variables that are not yet available at prediction time. For each future cycle $c>k$, the model returns an estimate of how much the battery deviates from the shared representation, $\widehat{R}_i(c)$.
+The final SOH trajectory is then obtained by adding the two components back together,
+\begin{equation}
+    \widehat{SOH}_i(c)
+    =
+    \overline{SOH}(c)
+    +
+    \widehat{R}_i(c).
+    \label{eq:final_prediction}
+\end{equation}
+
+% =====================================
+% Experimental protocol
+% =====================================
+
+\subsection{Experimental Protocol}
+\label{subsec:protocolo_experimental}
+
+For each test battery, different amounts of initial history are considered to define the point from which the prognosis is made. The shorter the observed history, the more the prediction depends on the shared representation built from the previously characterized batteries. The numbers of observed cycles are $k \in \{10, 20, 40, 80, 160, 240, 320, 400, 480, 560, 640\}$ for both datasets. Two baselines are considered: the mean curve alone, $\widehat{SOH}_i(c)=\overline{SOH}(c)$, and an individual SVR baseline that uses only the target battery: an SVR $f_{i,k}$ is fitted to the pairs $(c,SOH_i(c))$, $c=1,\ldots,k$, and the forecast is $\widehat{SOH}_i(c)=f_{i,k}(c)$ for $c>k$, with either the radial basis function (RBF) kernel or the hybrid kernel of Equation~\eqref{eq:hybrid_kernel}.
+
+Results are evaluated with the mean absolute error (MAE), defined as
+\begin{equation}
+    MAE
+    =
+    \frac{1}{T-k}
+    \sum_{c=k+1}^{T}
+    \left|
+        SOH_i(c)-\widehat{SOH}_i(c)
+    \right|,
+    \label{eq:mae}
+\end{equation}
+where $T$ is the last evaluated cycle of the test battery $i$, $SOH_i(c)$ is the observed value, and $\widehat{SOH}_i(c)$ is the value predicted by the model. The evaluation covers only the future cycles that were not used during training. The resulting error therefore reflects the actual prognostic ability of the model, not just its ability to reproduce the data used for fitting. Since the SOH is normalized by the initial capacity, the MAE is a fraction of that capacity: an MAE of 0.005 corresponds to 0.5 percentage points of SOH.
+
+% =====================================
+% Results
+% =====================================
+
+\section{Results}
+\label{sec:resultados}
+
+
+The hyperparameter optimization stage of the Support Vector Regression (SVR) model depends on the number of training series available, directly affecting the computational cost of the overall pipeline. Consequently, the Wenzhou dataset yielded shorter execution times than the HNEI dataset, primarily due to the smaller number of training batteries: six for Wenzhou compared with thirteen for HNEI. Nevertheless, the computational cost of training the hybrid Cauchy + Linear SVR model does not represent a substantial bottleneck in the overall pipeline. Considering the entire pipeline, including hyperparameter optimization and model training, the execution time ranged from a few seconds for Wenzhou cell H-2-1 using $k=10$ observed cycles to 42.8 minutes for HNEI cell H-9 using $k=640$. To illustrate the computational requirements of the implementation, these execution times were obtained on a standard personal laptop equipped with an AMD Ryzen 5 3500U processor and 8 GB of DDR4 RAM. These results highlight the influence of the number of observed cycles on the overall computational cost of the proposed approach.
+
+
+\subsection{Individual SVR Baseline}
+\label{subsec:individual_baseline}
+
+
+This subsection is a qualitative illustration of the individual SVR baseline defined in Section~\ref{subsec:protocolo_experimental}: an SVR fitted only to the first $k$ cycles of the target battery, without information from other batteries. Its purpose is to show how such a model extrapolates beyond the observed window, which motivates the use of population information in the proposed method. Figures~\ref{fig:individual_hnei} and~\ref{fig:individual_wenzhou} show the predictions for one representative cell of each dataset with $k \in \{20,80,320\}$.
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/reduced/HNEI_bat_1_individual_svr_n20_80_320.png}
+    \caption{SOH predictions of the individual SVR baseline for a representative HNEI cell. $n$ is the number of observed cycles $k$; dotted vertical lines mark the end of each observation window.}
+    \label{fig:individual_hnei}
+\end{figure}
+
+
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/reduced/bs-11.5_individual_svr_all_fits.png}
+    \caption{SOH predictions of the individual SVR baseline for Wenzhou cell bs-11.5, with the same conventions as Fig.~\ref{fig:individual_hnei}.}
+    \label{fig:individual_wenzhou}
+\end{figure}
+
+
+
+
+In both cells, the two kernels fit the observed segment but produce markedly different extrapolations, and neither follows the subsequent degradation. With $k=20$, the predictions diverge quickly from the measured trajectory; on the Wenzhou cell, the RBF prediction rises above the initial SOH level, whereas the hybrid prediction falls far below it. With $k=80$, the RBF prediction on the Wenzhou cell rises back to about 0.99 and then remains flat, while the hybrid prediction keeps declining. With $k=320$, both models follow the trend near the end of the observed window, but their forecasts still depart from the measured SOH. Fitting the observed history therefore does not ensure an accurate long-horizon forecast, and the extrapolation is sensitive to the kernel and to the window size. The following subsections examine whether the shared degradation representation provides a more informative basis for the forecast.
+
+\subsection{Wenzhou Dataset}
+
+Figure~\ref{fig:box_media_geral} and Table~\ref{tab:wenzhou_mae_comparison} allow a direct comparison between the mean-curve baseline and the proposed SVR Cauchy + Linear model across eleven initial observation windows, ranging from 10 to 640 cycles.
+
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=\linewidth]{Figures/reduced/boxplots_erros_todos_tamanhos.png}
+\caption{Absolute SOH prediction errors over the future cycles of the seven Wenzhou test batteries for each number of observed cycles $k$: mean-curve baseline and residual SVR with the hybrid Cauchy + Linear kernel.}
+% \Description{Paired box plots showing the distribution of prediction MAE for the mean-curve baseline and the residual learning model, evaluated using eleven different numbers of initial cycles.}
+\label{fig:box_media_geral}
+\end{figure}
+
+The mean-curve baseline exhibits relatively stable average errors,
+ranging from $0.01462 \pm 0.00638$ to
+$0.01680 \pm 0.00554$ across the evaluated training windows.
+In contrast, the SVR Cauchy + Linear model achieves lower mean MAE
+in all configurations, with an overall reduction of 66.30\% (Table~\ref{tab:wenzhou_mae_comparison}).
+Its best average performance occurs with 320 initial cycles,
+yielding an MAE of $0.00289 \pm 0.00165$.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Comparison of future SOH prediction errors (MAE) on the Wenzhou and HNEI datasets for each number of observed cycles. The last row gives the MAE averaged over all windows and the reduction computed from these averages.}
+    \label{tab:wenzhou_mae_comparison}
+    \footnotesize
+    \setlength{\tabcolsep}{2pt}
+    \begin{tabular}{lcccccc}
+        \hline
+         & \multicolumn{3}{c}{\textbf{Wenzhou}} & \multicolumn{3}{c}{\textbf{HNEI}} \\
+        \textbf{} & \textbf{Mean} & \textbf{SVR} & \textbf{MAE} & \textbf{Mean} & \textbf{SVR} & \textbf{MAE} \\
+        \textbf{Cycles} & \textbf{Curve} & \textbf{Hybrid} & \textbf{Red. (\%)} & \textbf{Curve} & \textbf{Hybrid} & \textbf{Red. (\%)} \\
+        \hline
+        10  & 0.016120 & 0.006838 & 57.58 & 0.02006 & 0.01498 & 25.32 \\
+        20  & 0.016228 & 0.006769 & 58.29 & 0.02022 & 0.01816 & 10.18 \\
+        40  & 0.016388 & 0.006938 & 57.66 & 0.02053 & 0.01888 & 8.08 \\
+        80  & 0.016618 & 0.005369 & 67.69 & 0.02118 & 0.01604 & 24.27 \\
+        160 & 0.016804 & 0.004835 & 71.22 & 0.02245 & 0.01820 & 18.94 \\
+        240 & 0.016642 & 0.006925 & 58.39 & 0.02380 & 0.01874 & 21.24 \\
+        320 & 0.016350 & 0.002895 & 82.29 & 0.02524 & 0.02288 & 9.35 \\
+        400 & 0.015902 & 0.004354 & 72.62 & 0.02663 & 0.02582 & 3.02 \\
+        480 & 0.015424 & 0.005536 & 64.11 & 0.02805 & 0.02488 & 11.31 \\
+        560 & 0.014953 & 0.005428 & 63.70 & 0.02912 & 0.02656 & 8.80 \\
+        640 & 0.014624 & 0.003450 & 76.41 & 0.02981 & 0.04066 & $-36.39$ \\
+        \hline
+        \textbf{Mean} & \textbf{0.016005} & \textbf{0.005394} & \textbf{66.30} & \textbf{0.02428} & \textbf{0.02235} & \textbf{7.97} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+However, the improvement is not monotonic with the number of
+available cycles. The SVR error increases at some intermediate
+windows, and its variability differs across configurations.
+These findings suggest that predictive performance depends not
+only on the amount of initial information but also on how effectively
+it characterizes battery-specific degradation behavior.
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=1\linewidth]{Figures/boxplot_erros_algoritmo_final_n10.png}
+    \caption{Absolute SOH prediction errors over the future cycles of each Wenzhou test battery: mean-curve baseline and residual SVR with the hybrid Cauchy + Linear kernel.}
+\label{fig:boxplot_errors}
+\end{figure}
+
+Fig.~\ref{fig:boxplot_errors} presents the absolute prediction errors for each battery over the test interval.
+The results show that the SVR model achieves lower median errors than the mean-curve reference for most of the evaluated batteries. However, the magnitude of this improvement varies across cells. For batteries H-1-2, H-5-1, bs-11.5, ys-10.8, and ys-11.2, the SVR exhibits substantially lower median errors, whereas the difference is less pronounced for H-2-1. Battery H-7-1 presents a wider error distribution for both approaches, particularly for the SVR, indicating greater variability in predictive performance over the test interval. These observations complement the aggregate metrics by showing that improvements in average error do not necessarily imply uniform performance across all test cycles.
+
+% \begin{figure}[!ht]
+% \centering
+% \includegraphics[width=\linewidth]{boxplot_mae.png}
+% \caption{MAE distribution of the residual learning model.}
+% \Description{Box plots of the MAE of the residual learning model for each training set size.}
+% \label{fig:box_modelo}
+% \end{figure}
+
+% Comparing Figures~\ref{fig:box_media_geral} and~\ref{fig:box_modelo}, together with Table~\ref{tab:comparacao_mae}, gives a quantitative measure of the contribution of residual learning. On average, the MAE fell from 0.0158 to 0.0049, a reduction of approximately 69.5\%. Six of the seven batteries showed reductions above 65\%, reaching about 79\% for battery ys-11.2. The only exception is battery H-7-1, for which the model was slightly worse than the mean curve ($-6.7\%$). Its trajectory already follows the mean trend closely, so there is little systematic residual to learn, and fitting a residual model on a short history can add more variance than it removes. This case indicates that individual adaptation is most useful for batteries whose degradation departs from the population trend.
+
+% These results indicate that the proposed strategy does not replace the mean degradation representation. It uses this representation as an initial estimator on top of which only the particularities of each battery are learned. The regression problem no longer has to model the entire SOH trajectory and can focus on the residual component alone, which greatly reduces the complexity of learning and makes the estimates more accurate.
+
+\subsection{HNEI Dataset: Outliers and Experimental Discontinuities}
+\label{subsec:hnei_results}
+
+Unlike datasets with more regular degradation trajectories, HNEI exhibits pronounced fluctuations, outliers, and discontinuities between consecutive cycles.
+
+% Table~\ref{tab:mae_comparacao_hnei} compares SVR with the mean curve for all evaluated training-window sizes.
+% The results show that SVR has a lower mean MAE for initial windows of 10, 20, 40, and 80 cycles, although the magnitude of this advantage varies with the amount of available data.
+% This comparison assesses the extent to which the proposed model improves predictions over the baseline, even when trained on few observations.
+Table~\ref{tab:wenzhou_mae_comparison} compares the SOH prediction errors obtained with the hybrid SVR and the mean curve on HNEI for the evaluated training-window sizes. The irregularities, outliers, and discontinuities in HNEI affect predictive performance, reducing the performance gap between the proposed method and the baseline relative to the first dataset. This behavior is illustrated in Figure~\ref{fig:hnei_cell_errors}: the median MAE of the hybrid SVR is lower than that of the mean curve for ten of the fourteen cells, similar for H-8, and higher for H-5, H-11, and H-14. Nevertheless, the hybrid SVR achieves a lower mean absolute error for most evaluated training-window sizes, indicating that the proposed approach can produce more accurate predictions than the mean degradation curve alone.
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/reduced/hnei_loo_mae_boxplot_Nmax_640.png}
+    \caption{Distribution of the SOH MAE of each HNEI target cell over the eleven numbers of observed cycles ($k=10$ to $640$): mean-curve baseline and residual SVR with the hybrid Cauchy + Linear kernel.}
+    \label{fig:hnei_cell_errors}
+\end{figure}
+
+The exception observed with 640 training cycles reinforces that a longer history does not, by itself, guarantee greater predictive accuracy, particularly when additional observations contain irregularities that hinder identification of the degradation dynamics.
+The visual comparison in Figure~\ref{fig:predict_hnei} between the observed curves, SVR predictions, and the mean curve helps examine how these irregularities affect the results.
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/reduced/ULTIMA.png}
+    \caption{Observed SOH of HNEI cell H-3, mean curve, and residual SVR prediction with $k=80$ observed cycles; the vertical line marks the start of the forecast.}
+    \label{fig:predict_hnei}
+\end{figure}
+
+% To further investigate the robustness of the proposed approach, we evaluate its performance on the HNEI dataset, which presents substantially noisier degradation trajectories than those observed in the Wenzhou dataset. In particular, the HNEI data exhibit pronounced fluctuations, outliers, and discontinuities in cycle-to-cycle measurements. These characteristics introduce additional challenges for degradation forecasting, as local variations may obscure the underlying long-term degradation trend and affect the reliability of predictions based on limited observations.
+
+% Figure~\ref{fig:hnei_window_errors} compares the distributions of cycle-wise absolute SOH errors for initial observation windows ranging from 10 to 800 cycles. Each pair of boxplots summarizes the errors obtained over the future prediction region for a given training-window size. The blue boxes represent the mean-curve baseline, whereas the orange boxes correspond to the SVR Cauchy + Linear model.
+
+% The mean-curve baseline exhibits a general increase in median error as the initial observation window becomes longer. This trend is particularly apparent at intermediate and larger window sizes, suggesting that the population-level trajectory does not consistently represent the degradation behavior of the target cell over the remaining prediction horizon. Since this baseline does not adapt its trajectory to the specific degradation dynamics of the target battery, differences between individual degradation patterns and the shared mean can persist even when more cycles have been observed.
+
+% The SVR Cauchy + Linear model exhibits a different error profile. Its median error is lower than that of the mean-curve baseline for several window sizes, particularly for shorter and intermediate observation windows. However, this advantage is not uniform across all configurations. At larger window sizes, the model's median error increases in some cases, and its error distribution may become more dispersed. In particular, the results around 640 cycles indicate that providing additional observations does not necessarily yield a lower MAE.
+
+% Both approaches exhibit substantial variability and observations with errors considerably larger than their respective medians. The interquartile ranges and whiskers also indicate that the relative performance of the methods changes with the size of the initial observation window. Consequently, comparing only the median MAE would provide an incomplete assessment of predictive performance.
+
+% These results highlight an important distinction between the amount of observed history and the difficulty of predicting the remaining degradation trajectory. Although increasing the observation window provides more information about the target cell, it also changes the portion of the trajectory being evaluated. The remaining horizon is shorter, but the predictions may still be affected by deviations from the assumed degradation pattern and by the extrapolation behavior of the regression model. Therefore, the results do not support the assumption that a larger observation window necessarily leads to improved prediction accuracy.
+
+% \begin{figure}[!ht]
+%     \centering
+%     \includegraphics[width=\linewidth]{figs/image2.png}
+%     \caption{Distribution of cycle-wise absolute SOH errors on the HNEI dataset}
+%     \label{fig:hnei_window_errors}
+% \end{figure}
+
+% \subsubsection{Comparison across target cells}
+
+% While Figure~\ref{fig:hnei_window_errors} illustrates how prediction errors vary with the amount of available target-cell history, Figure~\ref{fig:hnei_cell_errors} examines the differences between individual target cells. For this comparison, only experiments with initial observation windows satisfying $N \leq 640$ are included. Each box summarizes the MAE values obtained across the considered training-window sizes for a given target cell and method.
+
+% The results reveal substantial heterogeneity across the HNEI cells. The relative performance of the two approaches varies considerably between batteries, indicating that the effectiveness of the SVR model depends on the degradation characteristics of the target cell. For H-1, H-3, H-4, H-6, H-7, H-11, H-12, and H-13, the SVR Cauchy + Linear model exhibits a lower median MAE than the mean-curve baseline. These results suggest that adapting the regression model to the observed target-cell trajectory can improve prediction accuracy for several cells.
+
+% However, this improvement is not universal. For H-5 and H-14, the SVR model exhibits a higher median error than the mean-curve baseline. H-8 presents comparatively similar median errors, while H-2, H-9, and H-15 display different error distributions between the two approaches. These differences reinforce the observation that the performance of a shared degradation representation cannot be characterized by a single aggregate result alone.
+
+% The dispersion of the errors provides additional information beyond the median. Several cells exhibit broad interquartile ranges, long whiskers, or isolated observations with considerably larger errors. In particular, a method with a lower median may still produce less consistent predictions across the evaluated configurations. Conversely, a relatively narrow distribution does not necessarily imply the lowest typical error. Both central tendency and dispersion must therefore be considered when assessing the robustness of each approach.
+
+% Taken together, the two aggregate comparisons show that the amount of available target-cell history and the identity of the target cell are both associated with changes in prediction performance. The SVR Cauchy + Linear model improves upon the mean-curve baseline in several configurations, but the observed gains depend on the target cell and observation-window size. This variability motivates the examination of individual extrapolation trajectories, since aggregate error distributions alone cannot reveal how the predicted SOH evolves beyond the observed region.
+
+% \subsubsection{Individual extrapolation behavior}
+
+% The aggregate error distributions provide a comparative assessment of predictive performance, but they do not fully describe the temporal behavior of the predicted trajectories. Figures~\ref{fig:individual_hnei} and~\ref{fig:individual_wenzhou} therefore present representative individual extrapolations for the HNEI and Wenzhou datasets, respectively. In each example, the observed SOH trajectory is compared with predictions obtained using RBF and Cauchy + Linear SVR models and initial observation windows of 20, 80, and 320 cycles. Vertical dotted lines mark the end of each observation window and distinguish the observed region from the future prediction region.
+
+% For the HNEI example, the predictions based on the first 20 cycles differ substantially between the two kernels. The Cauchy + Linear model initially follows the observed trajectory but subsequently produces a pronounced increase in predicted SOH, whereas the RBF model approaches an almost constant trajectory. With 80 initial cycles, both models use a longer segment of the observed degradation history, yet their predictions still depart from the subsequent measured trajectory. Using 320 cycles provides additional information about the target cell, but the predictions do not fully reproduce the subsequent degradation behavior, particularly its changes in degradation rate.
+
+% A similar limitation is observed in the Wenzhou example. With 20 initial cycles, neither prediction adequately captures the subsequent decline in SOH. With 80 cycles, the two kernels produce different extrapolation patterns: the RBF prediction becomes relatively flat, whereas the Cauchy + Linear prediction continues a more pronounced decline. For the 320-cycle window, the predictions are more closely constrained by the observed history near the end of the training region, but they still depart from the subsequent degradation trend.
+
+% These examples illustrate the distinction between representing the observed segment and predicting the unobserved future. A regression model may fit the available observations reasonably well while generating inaccurate long-horizon extrapolations. Moreover, the divergence between predictions obtained with different kernels shows that extrapolation behavior is sensitive to the model configuration. Increasing the observation window provides additional information, but it does not guarantee that the subsequent degradation dynamics will be reproduced accurately.
+
+% The individual trajectories also help contextualize the aggregate results. A lower median MAE across a set of experiments does not imply that the model consistently reproduces the temporal evolution of every target cell. Conversely, an unsuccessful extrapolation for a representative cell does not, by itself, establish poor performance across the entire dataset. The aggregate distributions and individual examples should therefore be interpreted jointly: the former quantify variability across evaluated predictions, while the latter illustrate specific ways in which extrapolation can depart from the measured degradation trajectory.
+
+% \begin{figure}[!ht]
+%     \centering
+%     \includegraphics[width=\linewidth]{figs/0_HNEI_bat_1_individual_svr_n20_80_320.png}
+%     \caption{Individual SOH extrapolation for a representative HNEI battery using RBF and Cauchy + Linear SVR models with initial observation windows of 20, 80, and 320 cycles. Vertical dotted lines indicate the end of each observation window.}
+%     \label{fig:individual_hnei}
+% \end{figure}
+
+% \begin{figure}[!ht]
+%     \centering
+%     \includegraphics[width=\linewidth]{figs/bs-11.5_individual_svr_all_fits.png}
+%     \caption{Individual SOH extrapolation for a representative Wenzhou battery using RBF and Cauchy + Linear SVR models with initial observation windows of 20, 80, and 320 cycles. Vertical dotted lines indicate the end of each observation window.}
+%     \label{fig:individual_wenzhou}
+% \end{figure}
+
+% \subsubsection{Effect of Training Set Size}
+
+% Beyond the direct comparison with the mean curve, it is also important to analyze how the amount of information available during the early cycles affects the prognostic ability of the proposed model. Figure~\ref{fig:mae_medio} shows how the MAE changes with the size of the training set. The average error tends to decrease as more cycles are used for training. In the first scenarios, with only 80 and 160 cycles, the model has to extrapolate almost the entire degradation trajectory of the battery, which makes the problem much harder. Even under these conditions, the errors remain lower than those obtained with the mean curve alone.
+
+% \begin{figure}[!ht]
+% \centering
+% \includegraphics[width=\linewidth]{mae_medio_vs_treino.png}
+% \caption{Average MAE as a function of the training set size.}
+% \Description{Line plot of the average MAE versus the number of cycles used for training.}
+% \label{fig:mae_medio}
+% \end{figure}
+
+% As new cycles are added to training, the residual estimate becomes more precise and the average prediction error gradually falls. Small oscillations appear in some intervals, especially between 400 and 480 cycles, but the general behavior shows that additional information leads to a better characterization of the differences between the test battery and the mean degradation trend. These results indicate that the method generalizes well even when only a small fraction of the battery life is available for training, a property that prognostics in real systems requires.
+
+% \subsubsection{Qualitative Analysis of the Predicted Curves}
+
+% \begin{figure*}[!ht]
+% \centering
+
+% \includegraphics[width=.48\linewidth]{Imagem colada115.png}
+% \includegraphics[width=.48\linewidth]{Imagem colada12.png}
+
+% \vspace{0.2cm}
+
+% \includegraphics[width=.48\linewidth]{Imagem colada108.png}
+% \includegraphics[width=.48\linewidth]{Imagem colada112.png}
+
+% \caption{Prediction examples using only 80 training cycles.}
+% \Description{Four plots comparing the measured SOH, the mean curve, and the model prediction for different batteries.}
+% \label{fig:predicoes}
+
+% \end{figure*}
+
+% Statistical metrics quantify the average performance of the method, but visual inspection of the predicted curves tells us more about how well it follows the evolution of degradation over time. Figure~\ref{fig:predicoes} shows four prediction examples that use only 80 training cycles, which is the scenario with the longest extrapolation considered in this work. In all examples, the mean curve gives only a first approximation of degradation. It follows the global trend correctly but deviates systematically from the individual behavior of each battery. With residual learning, the predicted curves track the measured SOH much more closely. This is most visible for batteries bs-11.5 and ys-11.2 (top row), whose trajectories deviate considerably from the mean trend but are well reproduced by the proposed model. Even where the degradation rate changes slightly at a local level, the method preserves the global behavior of the battery and avoids the artificial oscillations often seen in purely data-driven models.
+
+\subsection{Comparison with Published Methods}
+
+On the Wenzhou dataset, He et al.~\cite{He2026TransferSodium} forecast degradation trajectories using lithium-ion cells as source data, under an evaluation protocol different from ours; their errors are therefore not directly comparable, and the quantitative comparison below is restricted to HNEI. For the HNEI dataset, the hybrid Cauchy--Linear SVR achieves a mean MAE of 0.0223. With 10 observed cycles, its MAE is 0.0150, while 20 and 40 cycles yield 0.0182 and 0.0189, respectively. Although these latter errors are slightly higher than the 0.0175 reported by KanFormer \cite{zhao2026kanformer}, the differences are relatively small (3.8\% and 7.9\%); averaged over all windows, however, our MAE is about 28\% higher. These figures come from different evaluation protocols, with different training data, forecast origins, and horizons, so the comparison is only indicative. KanFormer combines Kolmogorov--Arnold Networks (KANs) with convolutional and temporal feature extraction, achieving an $R^2$ of 0.9961 on HNEI; however, its architecture contains approximately one million trainable parameters. In contrast, our method uses conventional SVR models to learn battery-specific residuals, offering a substantially simpler and computationally cheaper alternative.
+
+Other recent studies employ more elaborate architectures to address battery degradation. FESD \cite{wang2025fesd} combines feature-enhanced processing, Transformer-based attention, structured state-space layers, and diffusion modeling for SOH prediction and missing-data imputation across a mixed dataset containing HNEI and other battery datasets. The authors report competitive prediction performance across different proportions of observed data, but their results do not provide a directly comparable HNEI-specific MAE on the same evaluation protocol. Similarly, the universal forecasting framework \cite{chan2026universal} adapts a pretrained time-series foundation model using parameter-efficient fine-tuning and physics-informed constraints; evaluated across 20 datasets, it achieves the lowest or near-lowest errors on most datasets. Despite their broader modeling capabilities, both approaches require considerably more elaborate architectures and training procedures than our hybrid SVR strategy. The main strength of our approach is its simplicity: it combines a mean curve with a kernel model fitted to at most a few hundred points of the target cell and runs on a laptop CPU.
+
+% =====================================
+% Conclusions
+% =====================================
+
+\section{Conclusions}
+\label{sec:conclusoes}
+
+This work proposes a residual learning strategy for battery SOH prognostics, combining a mean degradation curve as prior knowledge with SVR to capture battery-specific deviations. The approach achieves accurate forecasts using limited early-cycle data, with low computational cost and no need for deep architectures or GPU training. Compared with the mean curve alone, it reduced the average MAE by 66.3\% on the sodium-ion Wenzhou dataset, with lower errors in every observation window, and improved the forecast in ten of the eleven windows on the noisier lithium-ion HNEI dataset, where the gains were smaller and varied across cells.
+
+% \subsection{Limitations}
+
+The method requires a reference set of previously characterized batteries from the same technology and production process. Changes in these conditions require a new reference set. The evaluation also has limitations: the datasets contain only seven and fourteen cells, each tested under a single protocol; the individual SVR baseline is assessed only qualitatively; and the comparison with published methods relies on results obtained under different protocols.
+
+\section*{Declaration of Generative AI} 
+The authors used large language models (LLMs) to assist with grammar, style, and the logical structure of the text. These tools were employed exclusively for linguistic editing and the enhancement of textual clarity. All text modified by the LLMs was thoroughly revised by the authors to ensure scientific accuracy and internal consistency. The authors assume full responsibility for the accuracy, originality, and integrity of the final manuscript.
+
+% \section*{Code Availability}
+
+% Our code is available on Github Repository [\url{https://github.com/JoaoNascimento0/soh_predict_svr_residual_learning}].
+
+% \section*{Data Availability}
+
+% The datasets used in this study are publicly available: Wenzhou Dataset [\url{https://github.com/lvdongzhen/Wenzhou-Sodium-ion-Battery-Degradation-Data}] and HNEI Dataset [\url{https://www.batteryarchive.org/}].
+
+%%
+%% References
+\bibliographystyle{IEEEtran}
+\bibliography{biblio}
+
+\end{document}
