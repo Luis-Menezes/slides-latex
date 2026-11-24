@@ -44,7 +44,7 @@
   \column{.5\textwidth}
   \begin{figure}
     \centering
-    \includegraphics[width=.9\linewidth]{assets/computational_scale.pdf}
+    \includegraphics[width=.9\linewidth]{figures/computational_scale.pdf}
     \caption{\scriptsize Custo computacional e acurácia atrelada ao cálculo de propriedades físicas\cite{PyzerKnapp2022}.}
   \end{figure}
   % \begin{beamercolorbox}[rounded=true,sep=1.2ex,wd=\linewidth]{block body}
@@ -59,51 +59,57 @@
 \begin{frame}{Problema de pesquisa}
 \begin{columns}[T,onlytextwidth]
   \column{.48\textwidth}
-  \begin{block}{Custo computacional da DFT}
+  \begin{block}{Custo computacional de DFT}
   \begin{itemize}\tightitem
     \item Resolve iterativamente as equações de Kohn--Sham.
-    \item Escala com o número de átomos e a complexidade da célula.
-    \item VASP, PBE e HSE06 têm custos muito diferentes.
+    \item Escala com o número de átomos e a complexidade da célula $O(N^3)$.
+    % \item VASP, PBE e HSE06 têm custos muito diferentes.
   \end{itemize}
   \end{block}
   \column{.48\textwidth}
   \begin{block}{Limitação dos dados supervisionados}
   \begin{itemize}\tightitem
     \item Rótulos de alta fidelidade são escassos.
-    \item Redes profundas podem apresentar overfitting.
-    \item A generalização fora da distribuição é difícil.
+    \item Redes profundas podem apresentar \textit{overfitting}.
+    \item A generalização fora da distribuição é difícil (\textit{exploitation}).
   \end{itemize}
   \end{block}
 \end{columns}
-\vspace{3mm}
+\vspace{4mm}
 \centering
 \textbf{Pergunta central:} como aprender representações estruturais úteis com poucos rótulos?
 \end{frame}
 
-\begin{frame}{Objetivos}
-\begin{block}{Objetivo geral}
-Desenvolver, implementar e avaliar modelos contrastivos para predizer propriedades físico-químicas de materiais 2D.
-\end{block}
-\vspace{2mm}
-\begin{columns}[T,onlytextwidth]
-  \column{.49\textwidth}
-  \begin{itemize}\tightitem
-    \item Revisar aprendizado contrastivo auto-supervisionado e supervisionado.
-    \item Pré-processar estruturas da C2DB em representações adequadas.
-  \end{itemize}
-  \column{.49\textwidth}
-  \begin{itemize}\tightitem
-    \item Implementar redes siamesas e codificadores baseados em similaridade.
-    \item Avaliar representações latentes em tarefas downstream.
-  \end{itemize}
-\end{columns}
-\vspace{3mm}
-\centering
-\textbf{Propriedades-alvo:} $E_g$ (\emph{band gap}) e $\Delta H$ (energia de formação).
-\end{frame}
+  % \begin{frame}{Objetivos}
+  % \begin{block}{Objetivo geral}
+  % Desenvolver, implementar e avaliar modelos contrastivos para predizer propriedades físico-químicas de materiais 2D.
+  % \end{block}
+  % \vspace{2mm}
+  % \begin{columns}[T,onlytextwidth]
+  %   \column{.49\textwidth}
+  %   \begin{itemize}\tightitem
+  %     \item Revisar aprendizado contrastivo auto-supervisionado e supervisionado.
+  %     \item Pré-processar estruturas da C2DB em representações adequadas.
+  %   \end{itemize}
+  %   \column{.49\textwidth}
+  %   \begin{itemize}\tightitem
+  %     \item Implementar redes siamesas e codificadores baseados em similaridade.
+  %     \item Avaliar representações latentes em tarefas downstream.
+  %   \end{itemize}
+  % \end{columns}
+  % \vspace{3mm}
+  % \centering
+  % \textbf{Propriedades-alvo:} $E_g$ (\emph{band gap}) e $\Delta H$ (energia de formação).
+  % \end{frame}
 
 \begin{frame}{Aprendizado contrastivo}
 \begin{columns}[T,onlytextwidth]
+  \column{.43\textwidth}
+  \begin{figure}
+    \centering
+    \includegraphics[width=.9\linewidth]{figures/contrastive_standard.png}
+    \caption{\scriptsize Aproximação de pares positivos e afastamento de negativos.}
+  \end{figure}
   \column{.53\textwidth}
   \begin{block}{Ideia central}
   Projetar amostras semelhantes próximas e amostras distintas afastadas em um espaço latente.
@@ -116,21 +122,6 @@ Desenvolver, implementar e avaliar modelos contrastivos para predizer propriedad
     \item \textbf{Positivos:} vistas da mesma estrutura ou exemplos da mesma faixa de propriedade.
     \item \textbf{Negativos:} outras estruturas ou propriedades distintas.
   \end{itemize}
-  \column{.43\textwidth}
-  \begin{tikzpicture}[
-    node distance=7mm,
-    box/.style={rounded corners,draw=ResearchGreen,fill=white,minimum height=9mm,align=center,font=\scriptsize}
-  ]
-  \node[box,minimum width=24mm] (data) {Estrutura $G$};
-  \node[box,below left=6mm and 2mm of data] (v1) {Visão $\tilde G_i$};
-  \node[box,below right=6mm and 2mm of data] (v2) {Visão $\tilde G_j$};
-  \node[box,below=18mm of data] (z) {Embeddings $z_i$, $z_j$};
-  \draw[-{Stealth}] (data) -- (v1);
-  \draw[-{Stealth}] (data) -- (v2);
-  \draw[-{Stealth}] (v1) -- (z);
-  \draw[-{Stealth}] (v2) -- (z);
-  \node[below=3mm of z,font=\scriptsize\bfseries,text=ResearchGreenDark] {Aproximar positivos};
-  \end{tikzpicture}
 \end{columns}
 \end{frame}
 
@@ -141,44 +132,82 @@ Desenvolver, implementar e avaliar modelos contrastivos para predizer propriedad
   \begin{itemize}\tightitem
     \item Não usa rótulos físicos.
     \item SimCLR/NT-Xent usa vistas aumentadas da mesma amostra.
-    \item Aprende invariâncias estruturais.
+    \item CLIP (Contrastive Language-Image Pretraining) usa pares multimodais (texto e imagem).
+    % \item Aprende invariâncias estruturais.
   \end{itemize}
   \end{block}
   \column{.48\textwidth}
-  \begin{block}{Supervisionada  SupCon}
+  \begin{figure}
+    \centering
+    \includegraphics[width=.75\linewidth]{figures/contrastive_CLIP.png}
+    \caption{\scriptsize CLIP utilizando pares multimodais para determinar similaridade entre textos e imagens.}
+  \end{figure}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Abordagens contrastivas}
+\begin{columns}[T,onlytextwidth]
+  \column{.48\textwidth}
+  \begin{block}{Supervisionada SupCon}
   \begin{itemize}\tightitem
     \item Usa rótulos ou faixas de propriedades.
     \item Cada amostra pode ter múltiplos positivos.
     \item Organiza o espaço conforme semelhanças funcionales.
   \end{itemize}
   \end{block}
+  \column{.4\textwidth}
+  \begin{tikzpicture}[
+    node distance=2mm,
+    box/.style={rounded corners,draw=ResearchGreen,fill=white,minimum height=8mm,align=center,font=\scriptsize},
+    sample/.style={rounded corners,minimum width=17mm,minimum height=9mm,align=center,font=\tiny},
+    flow/.style={-{Stealth[length=1.5mm]},draw=ResearchGray,line width=.6pt}
+  ]
+  \node[box,minimum width=43mm] (data) {Lote de grafos rotulados $(G_k,y_k)$};
+  \node[box,below=of data,minimum width=40mm] (encoder) {GNN compartilhada\\+ projetor};
+  \node[sample,below=5mm of encoder,draw=ResearchGreen,fill=ResearchGreen!10] (positive) {Positivo\\$z_p,\ y_p=0$};
+  \node[sample,left=5.0mm of positive,draw=ResearchGreenDark,fill=ResearchGreen!10] (anchor) {Âncora\\$z_i,\ y_i=0$};
+  \node[sample,right=5mm of positive,draw=orange!80!black,fill=orange!10] (negative) {Negativo\\$z_n,\ y_n=1$};
+  \draw[flow] (data) -- (encoder);
+  \draw[flow] (encoder.south) -- (anchor.north);
+  \draw[flow] (encoder.south) -- (positive.north);
+  \draw[flow] (encoder.south) -- (negative.north);
+  % \node[below=2mm of positive,align=center,font=\tiny,text=ResearchGreenDark] (relations)
+    % {Mesmo rótulo: positivos \quad Rótulo distinto: negativo};
+  \node[below=1mm of positive,align=center,font=\scriptsize,text=ResearchGreenDark]
+    {Função de custo \textbf{aproxima} $z_i,z_p$\\e \textbf{afasta} $z_i,z_n$};
+  \end{tikzpicture}
 \end{columns}
 \vspace{4mm}
-\centering
-\textbf{Transição proposta:} pré-treinar sem rótulos e ajustar pesos para regressão específica.
+% \centering
+% \textbf{Transição proposta:} pré-treinar sem rótulos e ajustar pesos para regressão específica.
 \end{frame}
+
 
 \begin{frame}{Representação estrutural por grafos}
 \begin{columns}[T,onlytextwidth]
   \column{.43\textwidth}
-  \begin{block}{Grafo cristalino}
-  $G=(V,E)$
+  \begin{block}{Grafo cristalino $G=(V,E)$}
   \begin{itemize}\tightitem
     \item Nós $V$: átomos e características periódicas.
     \item Arestas $E$: ligações ou distâncias interatômicas.
   \end{itemize}
   \end{block}
-  \column{.53\textwidth}
   \begin{block}{Codificadores considerados}
   \begin{itemize}\tightitem
-    \item \textbf{CGCNN}: passagem de mensagens em grafos cristalinos.
-    \item \textbf{ALIGNN}: grafos atômicos e de linhas.
-    \item \textbf{Equiformer}: equivariância rotacional e representações direcionais.
+    \item CGCNN\cite{Xie2017CGCNN} %: passagem de mensagens em grafos cristalinos.
+    \item ALIGNN %: grafos atômicos e de linhas.
+    \item Equiformer %: equivariância rotacional e representações direcionais.
   \end{itemize}
   \end{block}
+  \column{.53\textwidth}
+  \begin{figure}
+    \centering
+    \includegraphics[width=.9\linewidth]{figures/GNN.png}
+    \caption{\scriptsize Representação de uma monocamada 2D como grafo.}
+  \end{figure}
+  \vspace{2mm}
+  % \smallsource{A estrutura deve preservar invariância translacional, rotacional e permutacional.}
 \end{columns}
-\vspace{2mm}
-\smallsource{A estrutura deve preservar invariância translacional, rotacional e permutacional.}
 \end{frame}
 
 \begin{frame}{Revisão bibliográfica sintetizada}
@@ -347,8 +376,8 @@ Desenvolver, implementar e avaliar modelos contrastivos para predizer propriedad
   {\Large\bfseries\color{ResearchGreenDark}Obrigado!}\\[2mm]
   Perguntas
 \end{frame}
-\begin{frame}[allowframebreaks]{Referências}
-  \bibliographystyle{abntex2-alf}
+\begin{frame}{Referências}
+  \bibliographystyle{splncs04}
   \bibliography{paper_source/biblio}
 \end{frame}
 \end{document}
