@@ -2,5 +2,6 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 pdflatex -interaction=nonstopmode -halt-on-error main.tex
+bibtex main.aux
 pdflatex -interaction=nonstopmode -halt-on-error main.tex
 cp main.pdf presentation.pdf

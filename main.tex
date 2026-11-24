@@ -1,4 +1,5 @@
 \documentclass[aspectratio=169,10pt]{beamer}
+\usepackage[brazil]{babel}
 \usepackage{beamerthemeResearchUNIFESP}
 \usepackage{graphicx,booktabs,array,tikz}
 \usetikzlibrary{arrows.meta,positioning,fit,calc}
@@ -30,24 +31,29 @@
 
 \begin{frame}{Contextualização}
 \begin{columns}[T,onlytextwidth]
-  \column{.54\textwidth}
+  \column{.45\textwidth}
   \begin{itemize}\tightitem
     \item Materiais 2D apresentam espessura atômica e confinamento quântico.
     \item São candidatos para eletrônica, fotovoltaica, catálise e armazenamento de energia.
-    \item Variáveis relevantes incluem estabilidade, \emph{band gap} e energia de formação.
+    \item Propriedades físico-químicas relevantes incluem estabilidade, \emph{band gap} ($E_g$) e energia de formação.
   \end{itemize}
-  \column{.42\textwidth}
-  \begin{block}{Desafio científico}
+  \vspace{1.5mm}
+  \begin{block}{Desafio}
     Explorar milhares de combinações químicas e estruturais exige métodos rápidos e escaláveis.
   \end{block}
-  \vspace{2mm}
-  \begin{beamercolorbox}[rounded=true,sep=1.2ex,wd=\linewidth]{block body}
+  \column{.5\textwidth}
+  \begin{figure}
     \centering
-    \textbf{C2DB}\\[1mm]
-    {\small base especializada em monocamadas 2D caracterizadas por DFT}
-  \end{beamercolorbox}
+    \includegraphics[width=.9\linewidth]{assets/computational_scale.pdf}
+    \caption{\scriptsize Custo computacional e acurácia atrelada ao cálculo de propriedades físicas\cite{PyzerKnapp2022}.}
+  \end{figure}
+  % \begin{beamercolorbox}[rounded=true,sep=1.2ex,wd=\linewidth]{block body}
+  %   \centering
+  %   \textbf{C2DB}\\[1mm]
+  %   {\small base especializada em monocamadas 2D caracterizadas por DFT}
+  % \end{beamercolorbox}
 \end{columns}
-\smallsource{Fontes: introdução e revisão bibliográfica da monografia.}
+% \smallsource{Fontes: introdução e revisão bibliográfica da monografia.}
 \end{frame}
 
 \begin{frame}{Problema de pesquisa}
@@ -341,5 +347,8 @@ Desenvolver, implementar e avaliar modelos contrastivos para predizer propriedad
   {\Large\bfseries\color{ResearchGreenDark}Obrigado!}\\[2mm]
   Perguntas
 \end{frame}
-
+\begin{frame}[allowframebreaks]{Referências}
+  \bibliographystyle{abntex2-alf}
+  \bibliography{paper_source/biblio}
+\end{frame}
 \end{document}
