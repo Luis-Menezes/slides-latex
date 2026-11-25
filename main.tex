@@ -17,8 +17,8 @@
 \newcommand{\smallsource}[1]{{\vspace{1mm}\tiny\color{ResearchGray}#1}}
 \newcommand{\metric}[3]{%
   \begin{beamercolorbox}[rounded=true,sep=1.1ex,wd=\linewidth]{block body}
-    {\scriptsize\color{ResearchGray}#1}\par
-    {\Large\bfseries\color{ResearchGreenDark}#2}\par
+    {\scriptsize\color{ResearchGray}#1}\par\vspace{2mm}
+    {\Large\bfseries\color{ResearchGreenDark}#2}\par\vspace{1mm}
     {\scriptsize #3}
   \end{beamercolorbox}}
 \newcommand{\tightitem}{\setlength{\itemsep}{3pt}\setlength{\parskip}{0pt}}
@@ -355,7 +355,7 @@ Desenvolver, implementar e avaliar modelos contrastivos para predizer propriedad
     \item Comparação com modelos supervisionados diretamente.
   \end{itemize}
   \end{block}
-  \vspace{2mm}
+  \vspace{1.5mm}
   \begin{block}{Protocolo}
   \begin{itemize}\tightitem
     \item Separação treino, validação e teste.
@@ -367,7 +367,7 @@ Desenvolver, implementar e avaliar modelos contrastivos para predizer propriedad
   \vspace{2mm}
   \metric{Métricas adicionais}{$R^2$, RMSE}{Generalização e magnitude do erro}
 \end{columns}
-\smallsource{A validação deve evitar vazamento entre composições ou estruturas semelhantes.}
+% \smallsource{A validação deve evitar vazamento entre composições ou estruturas semelhantes.}
 \end{frame}
 
 \begin{frame}{Resultados esperados e contribuições}
