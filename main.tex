@@ -80,36 +80,36 @@
 \textbf{Pergunta central:} como aprender representações estruturais úteis com poucos rótulos?
 \end{frame}
 
-  % \begin{frame}{Objetivos}
-  % \begin{block}{Objetivo geral}
-  % Desenvolver, implementar e avaliar modelos contrastivos para predizer propriedades físico-químicas de materiais 2D.
-  % \end{block}
-  % \vspace{2mm}
-  % \begin{columns}[T,onlytextwidth]
-  %   \column{.49\textwidth}
-  %   \begin{itemize}\tightitem
-  %     \item Revisar aprendizado contrastivo auto-supervisionado e supervisionado.
-  %     \item Pré-processar estruturas da C2DB em representações adequadas.
-  %   \end{itemize}
-  %   \column{.49\textwidth}
-  %   \begin{itemize}\tightitem
-  %     \item Implementar redes siamesas e codificadores baseados em similaridade.
-  %     \item Avaliar representações latentes em tarefas downstream.
-  %   \end{itemize}
-  % \end{columns}
-  % \vspace{3mm}
-  % \centering
-  % \textbf{Propriedades-alvo:} $E_g$ (\emph{band gap}) e $\Delta H$ (energia de formação).
-  % \end{frame}
 
 \begin{frame}{Aprendizado contrastivo}
-\begin{columns}[T,onlytextwidth]
+  \begin{columns}[T,onlytextwidth]
   \column{.43\textwidth}
-  \begin{figure}
-    \centering
-    \includegraphics[width=.9\linewidth]{figures/contrastive_standard.png}
-    \caption{\scriptsize Aproximação de pares positivos e afastamento de negativos.}
-  \end{figure}
+  \centering
+  \begin{tikzpicture}[node distance=2.5mm,
+    flowbox/.style={
+      rounded corners=1.5mm,
+      draw=ResearchGreen,
+      fill=ResearchLight,
+      text width=42mm,
+      minimum height=8mm,
+      inner sep=1mm,
+      align=center,
+      font=\scriptsize
+    },
+    flow/.style={-{Stealth[length=1.5mm]},draw=ResearchGreen,line width=.6pt}
+  ]
+    \node[flowbox] (input) {Entrada ($x$)};
+    \node[flowbox,below=of input] (views) {Visões Aumentadas ($\tilde{x_i},\tilde{x_j}$)};
+    \node[flowbox,below=of views] (encoder) {Rede Codificadora ($h_i, h_j$)};
+    \node[flowbox,below=of encoder] (projection) {Rede de projeção ($z_i, z_j$)};
+    \node[flowbox,below=of projection] (loss) {Função de custo contrastiva};
+
+    \draw[flow] (input) -- (views);
+    \draw[flow] (views) -- (encoder);
+    \draw[flow] (encoder) -- (projection);
+    \draw[flow] (projection) -- (loss);
+  \end{tikzpicture}
+
   \column{.53\textwidth}
   \begin{block}{Ideia central}
   Projetar amostras semelhantes próximas e amostras distintas afastadas em um espaço latente.
@@ -132,58 +132,133 @@
   \begin{itemize}\tightitem
     \item Não usa rótulos físicos.
     \item SimCLR/NT-Xent usa vistas aumentadas da mesma amostra.
-    \item CLIP (Contrastive Language-Image Pretraining) usa pares multimodais (texto e imagem).
+    \item CLIP (Contrastive Language-Image Pretraining)~\cite{CLIP} usa pares multimodais (texto e imagem).
     % \item Aprende invariâncias estruturais.
   \end{itemize}
   \end{block}
   \column{.48\textwidth}
-  \begin{figure}
+    \begin{figure}
     \centering
-    \includegraphics[width=.75\linewidth]{figures/contrastive_CLIP.png}
-    \caption{\scriptsize CLIP utilizando pares multimodais para determinar similaridade entre textos e imagens.}
+    \includegraphics[width=.9\linewidth]{figures/contrastive_standard.png}
+    \caption{\scriptsize Aproximação de pares positivos e afastamento de negativos.}
   \end{figure}
+  % \begin{figure}
+  %   \centering
+  %   \includegraphics[width=.75\linewidth]{figures/contrastive_CLIP.png}
+  %   \caption{\scriptsize CLIP utilizando pares multimodais para determinar similaridade entre textos e imagens.}
+  % \end{figure}
 \end{columns}
 \end{frame}
 
 \begin{frame}{Abordagens contrastivas}
 \begin{columns}[T,onlytextwidth]
-  \column{.48\textwidth}
-  \begin{block}{Supervisionada SupCon}
-  \begin{itemize}\tightitem
-    \item Usa rótulos ou faixas de propriedades.
-    \item Cada amostra pode ter múltiplos positivos.
-    \item Organiza o espaço conforme semelhanças funcionales.
-  \end{itemize}
+  \column{.45\textwidth}
+  \begin{block}{Supervisionada}
+    \begin{itemize}\tightitem
+      \item Agrupa por rótulos ou faixas de propriedades (quantis).
+      \item Permite múltiplos exemplos positivos no mesmo \textit{batch}.
+      \item Organiza o espaço latente por semelhanças funcionais.
+    \end{itemize}
   \end{block}
-  \column{.4\textwidth}
+  \vspace{2mm}
+  {\footnotesize\textbf{No trabalho:} aplica-se a alvos contínuos (ex.: band gap e $\Delta H$) divididos em faixas.}
+
+  \column{.53\textwidth}
+  \centering
   \begin{tikzpicture}[
-    node distance=2mm,
-    box/.style={rounded corners,draw=ResearchGreen,fill=white,minimum height=8mm,align=center,font=\scriptsize},
-    sample/.style={rounded corners,minimum width=17mm,minimum height=9mm,align=center,font=\tiny},
-    flow/.style={-{Stealth[length=1.5mm]},draw=ResearchGray,line width=.6pt}
+    node distance=3.5mm,
+    box/.style={rounded corners,draw=ResearchGreen,fill=white,minimum height=7.5mm,align=center,font=\scriptsize},
+    sample/.style={rounded corners,minimum width=15mm,minimum height=8.5mm,align=center,font=\tiny},
+    flow/.style={-{Stealth[length=1.5mm]},draw=ResearchGray,line width=.6pt},
+    posarrow/.style={<->,>={Stealth[length=1.5mm]},draw=ResearchGreenDark,densely dashed,line width=.7pt},
+    negarrow/.style={<->,>={Stealth[length=1.5mm]},draw=orange!85!black,densely dashed,line width=.7pt}
   ]
-  \node[box,minimum width=43mm] (data) {Lote de grafos rotulados $(G_k,y_k)$};
-  \node[box,below=of data,minimum width=40mm] (encoder) {GNN compartilhada\\+ projetor};
-  \node[sample,below=5mm of encoder,draw=ResearchGreen,fill=ResearchGreen!10] (positive) {Positivo\\$z_p,\ y_p=0$};
-  \node[sample,left=5.0mm of positive,draw=ResearchGreenDark,fill=ResearchGreen!10] (anchor) {Âncora\\$z_i,\ y_i=0$};
-  \node[sample,right=5mm of positive,draw=orange!80!black,fill=orange!10] (negative) {Negativo\\$z_n,\ y_n=1$};
-  \draw[flow] (data) -- (encoder);
-  \draw[flow] (encoder.south) -- (anchor.north);
-  \draw[flow] (encoder.south) -- (positive.north);
-  \draw[flow] (encoder.south) -- (negative.north);
-  % \node[below=2mm of positive,align=center,font=\tiny,text=ResearchGreenDark] (relations)
-    % {Mesmo rótulo: positivos \quad Rótulo distinto: negativo};
-  \node[below=1mm of positive,align=center,font=\scriptsize,text=ResearchGreenDark]
-    {Função de custo \textbf{aproxima} $z_i,z_p$\\e \textbf{afasta} $z_i,z_n$};
+    \node[box,minimum width=46mm] (data) {Lote de dados rotulados $<X_k, y_k>$};
+    \node[box,below=of data,minimum width=42mm] (encoder) {Encoder + rede de projeção};
+
+    \node[sample,below=6mm of encoder,draw=ResearchGreenDark,fill=ResearchGreen!12] (anchor) {Âncora\\$z_i$ (faixa A)};
+    \node[sample,left=3mm of anchor,draw=ResearchGreen,fill=ResearchGreen!8] (positive) {Positivo\\$z_p$ (faixa A)};
+    \node[sample,right=5mm of anchor,draw=orange!85!black,fill=orange!10] (negative) {Negativo\\$z_n$ (faixa B)};
+
+    \draw[flow] (data) -- (encoder);
+    \draw[flow] (encoder.south) -- (anchor.north);
+    \draw[flow] (encoder.south) -- (positive.north);
+    \draw[flow] (encoder.south) -- (negative.north);
+
+    \draw[posarrow] (anchor.south) to[bend left=25] node[below,font=\tiny,text=ResearchGreenDark] {aproxima} (positive.south);
+    \draw[negarrow] (anchor.south) to[bend right=30] node[below,font=\tiny,text=orange!85!black] {afasta} (negative.south);
   \end{tikzpicture}
 \end{columns}
-\vspace{4mm}
-% \centering
-% \textbf{Transição proposta:} pré-treinar sem rótulos e ajustar pesos para regressão específica.
 \end{frame}
 
+\begin{frame}{Objetivos}
+\begin{block}{Objetivo geral}
+Desenvolver, implementar e avaliar modelos contrastivos para predizer propriedades físico-químicas de materiais 2D.
+\end{block}
+\vspace{2mm}
+\begin{columns}[T,onlytextwidth]
+  \column{.49\textwidth}
+  \begin{itemize}\tightitem
+    % \item Revisar aprendizado contrastivo auto-supervisionado e supervisionado.
+    \item Pré-processar estruturas da C2DB em representações adequadas.
+    \item Avaliar aumentações físicas plausíveis e adequadas para redes cristalinas.
+  \end{itemize}
+  \column{.49\textwidth}
+  \begin{itemize}\tightitem
+    \item Implementar redes siamesas e codificadores baseados em similaridade.
+    \item Avaliar representações latentes em tarefas downstream.
+  \end{itemize}
+\end{columns}
+\vspace{3mm}
+\centering
+\textbf{Propriedades-alvo:} $E_g$ (\emph{band gap}) e $\Delta H$ (energia de formação).
+\end{frame}
+\begin{frame}{Metodologia proposta -- visão geral}
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tikzpicture}[node distance=4mm,
+  phase/.style={rounded corners,draw=ResearchGreen,fill=white,minimum height=14mm,minimum width=26mm,align=center,font=\scriptsize},
+  arrow/.style={-{Stealth[length=2mm]},line width=.7pt,ResearchGreen}]
 
-\begin{frame}{Representação estrutural por grafos}
+  \node[phase] (data) {\textbf{C2DB}\\Estruturas 2D};
+  \node[phase,right=of data] (pre) {\textbf{Grafo}\\$G=(V,E)$};
+  \node[phase,right=of pre] (aug) {\textbf{Aumentações}\\Vistas $\tilde G_i,\tilde G_j$};
+  \node[phase,right=of aug] (gnn) {\textbf{Codificador GNN}\\Representações $h_i,h_j$};
+  \node[phase,right=of gnn] (proj) {\textbf{Projetor}\\Embeddings $z_i,z_j$};
+  \node[phase,right=of proj] (loss) {\textbf{Perda contrastiva}\\NT-Xent / SupCon};
+
+  \node[font=\scriptsize\bfseries,text=ResearchGreenDark]
+    at ($(data.north)!0.5!(aug.north)+(0,9mm)$) {Pré-processamento};
+  \node[font=\scriptsize\bfseries,text=ResearchGreenDark]
+    at ([yshift=9mm]gnn.north) {Rede Encoder};
+  \node[font=\scriptsize\bfseries,text=ResearchGreenDark]
+    at ([yshift=9mm]proj.north) {Rede de projeção};
+
+  \draw[densely dashed,ResearchGold,line width=.6pt]
+    ($(aug.east)!0.5!(gnn.west)+(0,11mm)$) -- ($(aug.east)!0.5!(gnn.west)-(0,11mm)$);
+  \draw[densely dashed,ResearchGold,line width=.6pt]
+    ($(gnn.east)!0.5!(proj.west)+(0,11mm)$) -- ($(gnn.east)!0.5!(proj.west)-(0,11mm)$);
+  \draw[densely dashed,ResearchGold,line width=.6pt]
+    ($(proj.east)!0.5!(loss.west)+(0,11mm)$) -- ($(proj.east)!0.5!(loss.west)-(0,11mm)$);
+
+  \draw[arrow] (data)--(pre);
+  \draw[arrow] (pre)--(aug);
+  \draw[arrow] (aug)--(gnn);
+  \draw[arrow] (gnn)--(proj);
+  \draw[arrow] (proj)--(loss);
+
+  \node[below=12mm of gnn,phase,minimum width=38mm] (ft) {\textbf{Ajuste fino}\\Regressor MLP};
+  \node[right=6mm of ft
+  ,phase,minimum width=38mm] (prop) {\textbf{Propriedades}\\$E_g$, $\Delta H$};
+  \draw[arrow] (gnn.south) -- (ft.north);
+  \draw[arrow] (ft)--(prop);
+\end{tikzpicture}
+}
+\vspace{2mm}
+% \textbf{Dois ramos:} auto-supervisionado por vistas estruturais e supervisionado por rótulos/faixas.
+\end{frame}
+
+\begin{frame}{Representação estrutural por grafos e codificação}
 \begin{columns}[T,onlytextwidth]
   \column{.43\textwidth}
   \begin{block}{Grafo cristalino $G=(V,E)$}
@@ -194,119 +269,77 @@
   \end{block}
   \begin{block}{Codificadores considerados}
   \begin{itemize}\tightitem
-    \item CGCNN\cite{Xie2017CGCNN} %: passagem de mensagens em grafos cristalinos.
-    \item ALIGNN %: grafos atômicos e de linhas.
-    \item Equiformer %: equivariância rotacional e representações direcionais.
+    \item CGCNN~\cite{Xie2017CGCNN} %: passagem de mensagens em grafos cristalinos.
+    \item ALIGNN~\cite{Choudhary2021} %: grafos atômicos e de linhas.
+    \item Equiformer~\cite{Liao2022} %: equivariância rotacional e representações direcionais.
   \end{itemize}
   \end{block}
   \column{.53\textwidth}
   \begin{figure}
     \centering
     \includegraphics[width=.9\linewidth]{figures/GNN.png}
-    \caption{\scriptsize Representação de uma monocamada 2D como grafo.}
+    \caption{\scriptsize Ilustração de uma rede neural de grafos (CGCNN~\cite{Xie2017CGCNN}).}
   \end{figure}
   \vspace{2mm}
   % \smallsource{A estrutura deve preservar invariância translacional, rotacional e permutacional.}
 \end{columns}
 \end{frame}
 
-\begin{frame}{Revisão bibliográfica sintetizada}
-\begin{columns}[T,onlytextwidth]
-  \column{.31\textwidth}
-  \begin{beamercolorbox}[rounded=true,sep=1.2ex,wd=\linewidth]{block body}
-    \centering\textbf{\color{ResearchGreenDark}Aprendizado contrastivo}\\[2mm]
-    {\scriptsize SimCLR, NT-Xent, SupCon e Graph Contrastive Learning}
-  \end{beamercolorbox}
-  \column{.31\textwidth}
-  \begin{beamercolorbox}[rounded=true,sep=1.2ex,wd=\linewidth]{block body}
-    \centering\textbf{\color{ResearchGreenDark}Representações}\\[2mm]
-    {\scriptsize CGCNN, ALIGNN, Equiformer e descritores como SOAP/MBTR}
-  \end{beamercolorbox}
-  \column{.31\textwidth}
-  \begin{beamercolorbox}[rounded=true,sep=1.2ex,wd=\linewidth]{block body}
-    \centering\textbf{\color{ResearchGreenDark}Ciência dos materiais}\\[2mm]
-    {\scriptsize CrystalCLR, C2DB, JARVIS-2D e modelos foundation}
-  \end{beamercolorbox}
-\end{columns}
-\vspace{5mm}
-\centering
-\textbf{Convergência metodológica:} GNN + transformações físicas + perda contrastiva.
-\smallsource{Principais referências: Koker et al. (2022), Chen et al. (2020), Khosla et al. (2020), Xie e Grossman (2018).}
-\end{frame}
 
-\begin{frame}{Metodologia proposta -- visão geral}
-\centering
-\begin{tikzpicture}[node distance=5mm,
-  phase/.style={rounded corners,draw=ResearchGreen,fill=white,minimum height=14mm,minimum width=30mm,align=center,font=\scriptsize},
-  arrow/.style={-{Stealth[length=2mm]},line width=.7pt,ResearchGreen}]
 
-  \node[phase] (data) {\textbf{C2DB}\\Estruturas 2D};
-  \node[phase,right=of data] (pre) {\textbf{Pré-processamento}\\Grafo $G=(V,E)$};
-  \node[phase,right=of pre] (aug) {\textbf{Aumentações}\\Vistas $\tilde G_i,\tilde G_j$};
-  \node[phase,right=of aug] (gnn) {\textbf{Codificador GNN}\\Pesos compartilhados};
-  \node[phase,right=of gnn] (lat) {\textbf{Espaço latente}\\$z_i,z_j$};
-  \node[phase,right=of lat] (loss) {\textbf{Perda contrastiva}\\NT-Xent / SupCon};
-
-  \draw[arrow] (data)--(pre);
-  \draw[arrow] (pre)--(aug);
-  \draw[arrow] (aug)--(gnn);
-  \draw[arrow] (gnn)--(lat);
-  \draw[arrow] (lat)--(loss);
-
-  \node[below=12mm of gnn,phase,minimum width=38mm] (ft) {\textbf{Ajuste fino}\\Regressor MLP};
-  \node[below=12mm of lat,phase,minimum width=38mm] (prop) {\textbf{Propriedades}\\$E_g$, $\Delta H$};
-  \draw[arrow] (gnn.south) -- (ft.north);
-  \draw[arrow] (ft)--(prop);
-\end{tikzpicture}
-\vspace{2mm}
-\textbf{Dois ramos:} auto-supervisionado por vistas estruturais e supervisionado por rótulos/faixas.
-\end{frame}
-
-\begin{frame}{Pré-processamento e aumentações}
+\begin{frame}{\textit{Augmentation} em redes cristalinas}
 \begin{columns}[T,onlytextwidth]
   \column{.49\textwidth}
-  \begin{block}{Conversão em grafos}
+  \begin{block}{Multimodalidade~\cite{Pinheiro2022}}
   \begin{itemize}\tightitem
-    \item Extrair estruturas cristalinas da C2DB.
-    \item Representar átomos como nós.
-    \item Representar ligações e distâncias como arestas.
+    \item Diferentes representações (descritores) da mesma estrutura devem ser próximas no espaço latente.
   \end{itemize}
   \end{block}
   \column{.49\textwidth}
-  \begin{block}{Aumentações fisicamente plausíveis}
+  \begin{block}{Aumentações fisicamente plausíveis~\cite{koker2022graph}}
   \begin{itemize}\tightitem
     \item Pequenas perturbações atômicas.
-    \item Deformações elásticas no plano da monocamada.
+    % \item Deformações elásticas no plano da monocamada.
     \item Operações que preservem composição e coerência física.
   \end{itemize}
   \end{block}
 \end{columns}
-\vspace{3mm}
+\vspace{2mm}
 \centering
-\textbf{Risco metodológico:} aumentações excessivas podem criar estruturas não representativas.
+\begin{figure}
+    \centering
+    \includegraphics[width=.7\linewidth]{figures/koker_transf.png}
+    \caption{\scriptsize Ilustração de transformações físicas em estruturas cristalinas\cite{koker2022graph}.}
+  \end{figure}
+% \textbf{Risco metodológico:} aumentações excessivas podem criar estruturas não representativas.
 \end{frame}
 
 \begin{frame}{Treinamento contrastivo}
 \begin{columns}[T,onlytextwidth]
   \column{.49\textwidth}
-  \begin{block}{Ramo auto-supervisionado}
+  \begin{block}{Função de custo contrastiva}
+  \[
+  \text{sim}(u, v) = \frac{u\top v}{\|u\|\|v\|}
+  \]
+  \vspace{2mm}
   \[
   \mathcal L_{\mathrm{NT-Xent}}
   =-\log
   \frac{\exp(\mathrm{sim}(z_i,z_j)/\tau)}
   {\sum_{k\neq i}\exp(\mathrm{sim}(z_i,z_k)/\tau)}
   \]
-  \begin{itemize}\tightitem
-    \item Pares positivos: duas vistas da mesma estrutura.
-    \item Pares negativos: demais estruturas do lote.
-  \end{itemize}
+  % \begin{itemize}\tightitem
+    % \item Pares positivos: duas vistas da mesma estrutura.
+    % \item Pares negativos: demais estruturas do lote.
+  % \end{itemize}
   \end{block}
   \column{.49\textwidth}
-  \begin{block}{Ramo supervisionado}
+  \begin{block}{Cabeça de projeção}
   \begin{itemize}\tightitem
-    \item SupCon usa amostras com propriedades semelhantes.
-    \item Para regressão, propriedades podem ser discretizadas em faixas.
-    \item Os pesos podem ser transferidos ao regressor downstream.
+    \item Mapeia a representação original para o espaço latente.
+    \item Função de custo contrastiva aplicada sobre embeddings $z_i$ e $z_j$, melhora a qualidade da informação da representação $h_i$ e $h_j$.
+    \item A cabeça de projeção é descartada após o pré-treinamento.
+    % \item Para regressão, propriedades podem ser discretizadas em faixas.
   \end{itemize}
   \end{block}
 \end{columns}
@@ -319,7 +352,7 @@
   \begin{itemize}\tightitem
     \item Regressão do \emph{band gap} $E_g$.
     \item Regressão da energia de formação $\Delta H$.
-    \item Comparação com CGCNN supervisionado diretamente.
+    \item Comparação com modelos supervisionados diretamente.
   \end{itemize}
   \end{block}
   \vspace{2mm}
@@ -339,45 +372,49 @@
 
 \begin{frame}{Resultados esperados e contribuições}
 \begin{columns}[T,onlytextwidth]
-  \column{.49\textwidth}
+  \column{.39\textwidth}
   \begin{block}{Hipótese investigada}
-  O pré-treinamento contrastivo produz representações latentes mais informativas que descritores manuais e supera o treinamento puramente supervisionado em cenários com poucos rótulos.
+  O pré-treinamento contrastivo produz \textbf{representações latentes mais informativas} que descritores manuais e supera o treinamento puramente supervisionado em \textbf{cenários com poucos rótulos}.
   \end{block}
-  \column{.49\textwidth}
+  \column{.59\textwidth}
   \begin{block}{Contribuições esperadas}
   \begin{itemize}\tightitem
     \item Adaptação de aprendizado contrastivo para materiais 2D.
     \item Pipeline reproduzível com a C2DB.
-    \item Comparação entre contraste supervisionado e auto-supervisionado.
+    \item Comparação entre contraste auto-supervisionado e supervisionado.
   \end{itemize}
   \end{block}
 \end{columns}
 \vspace{4mm}
 \centering
-\textbf{Limitação central:} a precisão também depende da qualidade dos rótulos DFT utilizados.
+% \textbf{Limitação central:} a precisão também depende da qualidade dos rótulos DFT utilizados.
 \end{frame}
 
-\begin{frame}[plain]
-  \begin{tikzpicture}[remember picture,overlay]
-    \node[anchor=north east,xshift=-8mm,yshift=-7mm]
-      at (current page.north east) {\cinelogo};
-  \end{tikzpicture}
-  \vspace{10mm}
-  {\usebeamerfont{title}\color{ResearchGreenDark}Conclusão}
-  \vspace{5mm}
+\begin{frame}{Próximos passos}
+\begin{columns}[T,onlytextwidth]
+  \column{.69\textwidth}
   \begin{itemize}\tightitem
-    \item O custo da DFT limita a varredura de candidatos 2D.
-    \item Grafos representam átomos e interações de forma estruturalmente rica.
-    \item Aprendizado contrastivo pode aprender representações úteis com poucos rótulos.
-    \item A proposta combina pré-treinamento contrastivo e regressão de $E_g$ e $\Delta H$.
+    \item Pré-processamento da C2DB em grafos.
+    \item Implementação de aumentações físicas plausíveis.
+    \item Implementação de codificadores e cabeças de projeção.
+    \item Treinamento contrastivo.
+    % \item Avaliação em tarefas downstream.
+    % \item Comparação com modelos supervisionados.
   \end{itemize}
-  \vfill
+\end{columns}
+    \vfill
   \centering
   {\Large\bfseries\color{ResearchGreenDark}Obrigado!}\\[2mm]
-  Perguntas
+  Perguntas?
 \end{frame}
+
 \begin{frame}{Referências}
+  \begin{columns}
+  \column{.7\textwidth}
+  \tiny
   \bibliographystyle{splncs04}
   \bibliography{paper_source/biblio}
+  \column{.2\textwidth}
+  \end{columns}
 \end{frame}
 \end{document}

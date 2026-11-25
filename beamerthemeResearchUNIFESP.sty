@@ -74,8 +74,8 @@
 
 % Logo row: each file is optional. Add/remove logos via \researchlogos.
 \newcommand{\cinelogo}{%
-  \IfFileExists{assets/logos/cine.png}
-    {\includegraphics[height=8mm,width=20mm,keepaspectratio]{assets/logos/cine.png}}{}%
+  \IfFileExists{assets/logos/unifesp.eps}
+    {\raisebox{3mm}{\includegraphics[height=8mm,width=20mm,keepaspectratio]{assets/logos/unifesp.eps}}}{}%
 }
 \newcommand{\closinglogos}{%
   \begin{minipage}[c][19mm][c]{.32\paperwidth}\centering
@@ -98,6 +98,7 @@
       \usebeamerfont{footline}\color{ResearchGreen}\hfill
       \insertframenumber/\inserttotalframenumber
     \end{beamercolorbox}
+    \vspace{-25mm}
   }
 }
 
